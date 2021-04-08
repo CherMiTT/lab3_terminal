@@ -59,32 +59,44 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			printf("Couldn't discern input\n");
+			printf("Couldn't discern input: it's not ls and not cat!\n");
 		}
 		
 		v_args[i] = NULL;
 
 		pid = fork();
-		if(pid == 0) //if child process
+		switch (pid)
 		{
-			//(void)signal(SIGINT, SIG_IGN);
-			execvp(v_args[0], v_args);
+		case -1: //if error
+		{
+			printf("Fork failed!\n");
+			exit(-1);
 		}
-		else
+		case 0: //if child process
+		{
+			execvp(v_args[0], v_args);
+			break;
+		}
+		default: //if parent process
 		{
 			(void)signal(SIGINT, onCtrlC);
 			int stat;
 			wait(&stat);
-			printf("Parent process ended.\n");
+			printf("Child process successfully ended with code %d.\n", WEXITSTATUS(stat));
+			break;
+		}
 		}
 	}
 	return 0;
 }
 
 void onCtrlC(int sig) {
-	//printf("OUCH! - I got signal %d\n", sig);
-	//(void)signal(SIGINT, SIG_DFL);
 	printf("Got signal to kill the child %d\n", sig);
-	kill(pid, SIGINT);
-	printf("Child killed!\n");
+	if(kill(pid, SIGINT) == 0) 
+		printf("Child killed!\n");
+	else
+	{
+		printf("Some error has occured while killing the child!\n");
+		return;
+	}
 }
